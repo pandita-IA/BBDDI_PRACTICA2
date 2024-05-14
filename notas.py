@@ -15,26 +15,6 @@ def initDB():
     cursor.execute('USE python')
     # Crea las tablas correspondientes al diagrama notas.png
 
-    """
-        Notas:
-        -   id: int
-        -   titulo varchar 250
-        -   creada timestamp
-        -   cuerpo texto
-        -   autor varchar 50
-    """
-    tabla_notas = """
-    create table python.notas (
-        id      int             auto_increment primary key,
-        titulo  varchar(250)    NOT NULL,
-        creada  TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        cuerpo  text,
-        autor   varchar(50)     NOT NULL
-    );
-    """
-    cursor.execute(tabla_notas)
-
-
 
 def muestraMenu():
     print('------- MENU -------')
@@ -62,12 +42,6 @@ def crearUsuario():
     password =  input('Contraseña (¡visible!) : ')
 
     # Añadir el usuario a la BD
-    crear_usuario = f"""
-        create user {username} identified by {password};
-        grant select, insert, update, delete on python.notas to {username};
-    """
-
-    cursor.execute(crear_usuario)
 
     print('------ Usuario añadido ------\n')
 
@@ -100,21 +74,60 @@ def crearNota(username):
     # Guardar nota en la BD
 
 def listarNotas(username):
-    # Mostrar por pantalla las notas del usuario, ordenadas por fecha de creación decreciente
     comando_listar_notas = """
-        select *
-        from python.notas
-        where autor = username
-        order by creada desc;
-    """
+            select *
+            from python.notas
+            where autor = username
+            order by creada desc;
+        """
+    cursor.execute(comando_listar_notas,())
     pass
 
 def filtrarNotas(username):
-    # Mostrar por pantalla las notas del usuario creadas entre dos fechas pedidas por pantalla
+    username = input('Nombre de usuario: ')
+    fecha_inicio = input('Fecha de inicio (YYYY-MM-DD): ')
+    fecha_fin = input('Fecha de fin (YYYY-MM-DD): ')
+    try:
+        query = (
+            "SELECT * FROM notas "
+            "WHERE usuario = %s AND fecha_creacion BETWEEN %s AND %s"
+        )
+        cursor.execute(query, (username, fecha_inicio, fecha_fin))
+
+        # Obtener los resultados de la consulta
+        resultados = cursor.fetchall()
+
+        if resultados:
+            print(' Notas Encontradas\n')
+            for row in resultados:
+                print(row)
+        else:
+            print('No se encontraron notas para el usuario en el rango de fechas especificado.')
+
     pass
 
 def borrarNota(username):
-    # Pide el id de la nota que se quiere borrar y se elimina la fila correspondiente, siempre que la nota sea del usuario <username>
+    username = input('Nombre de usuario: ')
+    print('Borrar Nota\n')
+    nota_id = input('ID de la nota a borrar: ')
+
+    try:
+        # Verificar que la nota pertenece al usuario
+        verificar_query = (
+            "SELECT * FROM notas "
+            "WHERE id = %s AND usuario = %s"
+        )
+        cursor.execute(verificar_query, (nota_id, username))
+        nota = cursor.fetchone()
+
+        if nota:
+            # Si la nota existe y pertenece al usuario, eliminarla
+            borrar_query = "DELETE FROM notas WHERE id = %s AND usuario = %s"
+            cursor.execute(borrar_query, (nota_id, username))
+            mydb.commit()
+            print('Nota borrada exitosamente.')
+        else:
+            print('No se encontró una nota con ese ID para el usuario especificado.')
     pass
 
 def run():
