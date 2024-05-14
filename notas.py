@@ -80,11 +80,14 @@ def listarNotas(username):
             where autor = username
             order by creada desc;
         """
-    cursor.execute(comando_listar_notas,())
+    cursor.execute(comando_listar_notas,(username))
+    resultados = cursor.fetchall()
+    if resultados:
+        for row in resultados:
+            print(row)
     pass
 
 def filtrarNotas(username):
-    username = input('Nombre de usuario: ')
     fecha_inicio = input('Fecha de inicio (YYYY-MM-DD): ')
     fecha_fin = input('Fecha de fin (YYYY-MM-DD): ')
     try:
@@ -107,7 +110,6 @@ def filtrarNotas(username):
     pass
 
 def borrarNota(username):
-    username = input('Nombre de usuario: ')
     print('Borrar Nota\n')
     nota_id = input('ID de la nota a borrar: ')
 
