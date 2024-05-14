@@ -106,7 +106,14 @@ def filtrarNotas(username):
                 print(row)
         else:
             print('No se encontraron notas para el usuario en el rango de fechas especificado.')
-
+    except mysql.connector.Error as err:
+        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+            print("Algo está mal con tu nombre de usuario o contraseña")
+        elif err.errno == errorcode.ER_BAD_DB_ERROR:
+            print("La base de datos no existe")
+        else:
+            print(err)
+            
     pass
 
 def borrarNota(username):
@@ -130,6 +137,14 @@ def borrarNota(username):
             print('Nota borrada exitosamente.')
         else:
             print('No se encontró una nota con ese ID para el usuario especificado.')
+
+    except mysql.connector.Error as err:
+        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+            print("Algo está mal con tu nombre de usuario o contraseña")
+        elif err.errno == errorcode.ER_BAD_DB_ERROR:
+            print("La base de datos no existe")
+        else:
+            print(err)
     pass
 
 def run():
