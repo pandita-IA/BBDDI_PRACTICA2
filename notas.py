@@ -62,30 +62,34 @@ def crearUsuario():
     password =  input('Contraseña (¡visible!) : ')
 
     # Añadir el usuario a la BD
-    crear_usuario = f"""
-        create user '{username}' identified by '{password}';
-        grant select, insert, update, delete on python.notas to '{username}';
+    crear_usuario = """
+        create user %s identified by %s;
+        grant select, insert, update, delete on python.notas to %s;
     """
 
-    cursor.execute(crear_usuario)
+    cursor.execute(crear_usuario, (username, password, username), multi=True)
 
     print('------ Usuario añadido ------\n')
 
 def login():
+    global mydb
+    global cursor
+
     username = input("Login: ")
     password = input("Password (¡visible!): ")
 
     # Comprobar que las credenciales son válidas
-    credencialesValidas = mysql.connector.connect(
+    mydb = mysql.connector.connect(
         # Configura la conexión
         host="localhost",
         user=username,
-        passwd=password
+        passwd=password,
+        auth_plugin='mysql_native_password'
     )
 
     # Si las credenciales son válidas, accedemos al meno principal
-    if credencialesValidas:
-        cursor = credencialesValidas.cursor()
+    if mydb:
+        cursor = mydb.cursor()
         opcion = 0
         while opcion != 5:
             muestraOperaciones(username)
@@ -100,33 +104,28 @@ def login():
                 borrarNota(username)
 
 def crearNota(username):
-
-    cursor = mydb.cursor()
-    
     titulo = input("Titulo: ")
     texto = input("Cuerpo: ")
 
     # Guardar nota en la BD
 
-    comando_crear_nota = f"""
-        insert into python.notas (autor, titulo, cuerpo)
-        values ('{username}', '{titulo}', '{texto}')
-
+    comando_crear_nota = """
+        INSERT INTO python.notas (autor, titulo, cuerpo)
+        VALUES (%s, %s, %s)
     """
-    cursor.execute(comando_crear_nota)
+    cursor.execute(comando_crear_nota, (username, titulo, texto))
     mydb.commit()
 
 def listarNotas(username):
-    cursor = mydb.cursor()
     
     # Mostrar por pantalla las notas del usuario, ordenadas por fecha de creación decreciente
-    comando_listar_notas = f"""
+    comando_listar_notas = """
         select *
         from python.notas
-        where python.notas.autor = '{username}'
+        where python.notas.autor = %s
         order by creada desc;
     """
-    cursor.execute(comando_listar_notas)
+    cursor.execute(comando_listar_notas, (username,))
     resultados = cursor.fetchall()
     if resultados:
         for row in resultados:
@@ -134,13 +133,12 @@ def listarNotas(username):
     return resultados
 
 def filtrarNotas(username):
-    cursor = mydb.cursor()
     
     # Mostrar por pantalla las notas del usuario creadas entre dos fechas pedidas por pantalla
     fecha_inicio = input('Fecha de inicio (YYYY-MM-DD): ')
     fecha_fin = input('Fecha de fin (YYYY-MM-DD): ')
-    query = f"""
-        SELECT * FROM notas 
+    query = """
+        SELECT * FROM python.notas
         WHERE autor = %s AND creada BETWEEN %s AND %s
     """
     cursor.execute(query, (username, fecha_inicio, fecha_fin))
@@ -154,7 +152,6 @@ def filtrarNotas(username):
 
 
 def borrarNota(username):
-    cursor = mydb.cursor()
     
     # Pide el id de la nota que se quiere borrar y se elimina la fila correspondiente, siempre que la nota sea del usuario <username>
     
@@ -163,7 +160,7 @@ def borrarNota(username):
 
     # Verificar que la nota pertenece al usuario
     verificar_query = (
-        "SELECT * FROM notas "
+        "SELECT * FROM python.notas "
         "WHERE id = %s AND autor = %s"
     )
     cursor.execute(verificar_query, (nota_id, username))
@@ -171,9 +168,10 @@ def borrarNota(username):
 
     if nota:
         # Si la nota existe y pertenece al usuario, eliminarla
-        borrar_query = "DELETE FROM notas WHERE id = %s AND autor = %s"
+        borrar_query = "DELETE FROM python.notas WHERE id = %s AND autor = %s"
         cursor.execute(borrar_query, (nota_id, username))
         mydb.commit()
+
         print('Nota borrada exitosamente.')
     else:
         print('No se encontró una nota con ese ID para el usuario especificado.')
